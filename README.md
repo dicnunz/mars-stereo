@@ -1,4 +1,4 @@
-# Wheatstone
+# Mars Stereo
 
 Spirit Navcam stereo reconstruction. Sol 767, 1 March 2006.
 

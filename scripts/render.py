@@ -7,7 +7,7 @@ from numba import njit
 ROOT=Path(__file__).resolve().parents[1]
 @njit(cache=True)
 def raster(v,faces,uv,tex,w,h,f):
- im=np.zeros((h,w,3),np.uint8);im[:,:,0]=9;im[:,:,1]=11;im[:,:,2]=13;depth=np.full((h,w),1e10)
+ im=np.zeros((h,w,3),np.uint8);im[:,:,:]=255;depth=np.full((h,w),1e10)
  for tri in faces:
   a,b,c=tri
   if min(v[a,2],v[b,2],v[c,2])<.1:continue
@@ -31,52 +31,56 @@ def raster(v,faces,uv,tex,w,h,f):
     val=tex[iy,ix]*(1-du)*(1-dt)+tex[iy,ix+1]*du*(1-dt)+tex[iy+1,ix]*(1-du)*dt+tex[iy+1,ix+1]*du*dt
     val=min(255,max(0,val));im[y,x,0]=val;im[y,x,1]=val;im[y,x,2]=val
  return im
-font='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
-mono='/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
-def F(n,m=False):return ImageFont.truetype(mono if m else font,n)
-def ease(x):return (1-math.cos(math.pi*np.clip(x,0,1)))/2
+# Figure typography and placement follow Maki et al. (2003), Figs. 25–27.
+# Keep scientific labels outside image pixels.
+FONT_PATHS = [
+ '/System/Library/Fonts/Supplemental/Times New Roman.ttf',
+ '/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf',
+ '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+ 'C:/Windows/Fonts/times.ttf',
+]
+def F(size):
+ for path in FONT_PATHS:
+  if Path(path).is_file(): return ImageFont.truetype(path,size)
+ return ImageFont.load_default(size=size)
+def ease(x): return (1-math.cos(math.pi*np.clip(x,0,1)))/2
 def camera(t):
- u=np.clip((t-13)/25,0,1);s=ease(u)
+ s=ease((t-12)/32)
  pos=np.array([.09*math.sin(2*math.pi*s),-.15*math.sin(math.pi*s),.85*s])
- target=np.array([0.,.1,5.5]);z=target-pos;z/=np.linalg.norm(z);x=np.cross([0,1,0],z);x/=np.linalg.norm(x);y=np.cross(z,x)
+ target=np.array([0.,.1,5.5]);z=target-pos;z/=np.linalg.norm(z)
+ x=np.cross([0,1,0],z);x/=np.linalg.norm(x);y=np.cross(z,x)
  return pos,np.stack([x,y,z])
 def main():
- d=np.load(ROOT/'output/terrain.npz');m=json.loads((ROOT/'output/metrics.json').read_text());v=d['vertices'];faces=d['faces'];uv=d['uv'];tex=d['texture']
- raw=[Image.open(ROOT/'output'/n).convert('RGB').resize((760,760),Image.Resampling.LANCZOS) for n in ['left-raw.png','right-raw.png']]
+ d=np.load(ROOT/'output/terrain.npz')
+ v,faces,uv,tex=[d[k] for k in ['vertices','faces','uv','texture']]
+ raw=[Image.open(ROOT/'output'/n).convert('RGB').resize((864,864),Image.Resampling.LANCZOS) for n in ['left-raw.png','right-raw.png']]
  W,H,fps,duration=1920,1080,30,44
  (ROOT/'demo').mkdir(exist_ok=True)
  proc=subprocess.Popen(['ffmpeg','-v','error','-y','-f','rawvideo','-pix_fmt','rgb24','-s',f'{W}x{H}','-r',str(fps),'-i','-','-an','-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart',str(ROOT/'demo/wheatstone.mp4')],stdin=subprocess.PIPE)
+ # Side-by-side source and reconstructed surface, following the source paper's
+ # neighboring image/XYZ figures. Views are not geometrically rescaled.
+ pos,basis=camera(26)
+ comparison=Image.fromarray(raster((v-pos)@basis.T,faces,uv,tex,864,864,1150.))
  for frame in range(fps*duration):
-  t=frame/fps;im=Image.new('RGB',(W,H),(9,11,13));dr=ImageDraw.Draw(im)
-  if t<4:
-   alpha=ease(t/.9)*(1-ease((t-3.4)/.6));c=tuple(int(a*alpha) for a in (230,229,222))
-   dr.text((115,205),'WHEATSTONE',font=F(30,True),fill=(163,174,171));dr.text((108,318),'A place on Mars.',font=F(104),fill=c)
-   dr.text((115,520),'Two rover images. One measured surface.',font=F(32),fill=c)
-   dr.line((115,678,1805,678),fill=(54,60,60));dr.text((115,718),'SPIRIT   /   SOL 767   /   01 MARCH 2006',font=F(24,True),fill=c)
-  elif t<13:
-   im.paste(raw[0],(140,180));im.paste(raw[1],(1020,180));dr=ImageDraw.Draw(im)
-   dr.text((140,96),'LEFT NAVCAM',font=F(24,True),fill=(217,224,220));dr.text((1020,96),'RIGHT NAVCAM',font=F(24,True),fill=(217,224,220))
-   line=int(180+760*ease((t-5)/6));dr.line((140,line,900,line),fill=(180,232,213),width=2);dr.line((1020,line,1780,line),fill=(180,232,213),width=2)
-   dr.text((140,975),'20.03 cm separates the cameras.',font=F(28),fill=(218,223,218));dr.text((1120,980),'PDS ORIGINALS · MONOCHROME',font=F(21,True),fill=(133,148,142))
-  elif t<39:
-   pos,basis=camera(t);vv=(v-pos)@basis.T
-   im=Image.fromarray(raster(vv,faces,uv,tex,W,H,2000.));dr=ImageDraw.Draw(im)
-   dr.rectangle((0,0,W,126),fill=(9,11,13));dr.text((72,36),'WHEATSTONE',font=F(24,True),fill=(215,228,218));dr.text((420,36),'RECONSTRUCTED SURFACE',font=F(22,True),fill=(158,176,167))
-   dr.text((1430,36),f'{pos[2]:.2f} m  FORWARD',font=F(22,True),fill=(180,232,213))
-   dr.rectangle((0,982,W,H),fill=(9,11,13));dr.text((72,1010),f'{m["vertices"]:,} vertices   ·   {m["triangles"]:,} triangles',font=F(24),fill=(218,225,220))
-   dr.text((1120,1013),'Black regions have no supported geometry.',font=F(22),fill=(145,160,151))
-   if 13<=t<17:
-    dr.text((72,169),'A camera move through measured depth.',font=F(36),fill=(235,237,231))
-   if frame==660:im.save(ROOT/'demo/poster.png')
+  t=frame/fps;im=Image.new('RGB',(W,H),'white');dr=ImageDraw.Draw(im)
+  if t<12:
+   im.paste(raw[0],(64,56))
+   im.paste(raw[1] if t<6 else comparison,(992,56))
+   dr.text((64,944),'(a) Left Navcam',font=F(31),fill='black')
+   dr.text((992,944),'(b) Right Navcam' if t<6 else '(b) Textured mesh',font=F(31),fill='black')
+   dr.text((64,1005),'Spirit, sol 767.  1 March 2006.',font=F(27),fill='black')
+   dr.text((1350,1005),'NASA/JPL-Caltech',font=F(27),fill='black')
+   if frame==210: im.save(ROOT/'demo/poster.png')
   else:
-   dr.text((115,160),'BUILT FROM OBSERVATION',font=F(24,True),fill=(166,192,178))
-   for i,(big,small) in enumerate([(f'{m["valid_pixels"]:,}','CONSISTENT PIXELS'),(f'{m["left_right_cycle_px_percentiles"][0]:.3f} px','MEDIAN CYCLE ERROR'),(f'{m["depth_m_percentiles"][1]:.2f} m','MEDIAN FORWARD DEPTH')]):
-    xx=115+i*600;dr.text((xx,330),big,font=F(66),fill=(232,237,229));dr.text((xx,437),small,font=F(21,True),fill=(152,171,159))
-   dr.line((115,570,1805,570),fill=(59,74,64));dr.text((115,632),'Original stereo. Calibrated cameras. Reproducible geometry.',font=F(33),fill=(231,237,229))
-   dr.text((115,736),'Navigation imagery is grayscale. Unobserved terrain stays unbuilt.',font=F(24),fill=(152,171,159))
-   dr.text((115,835),'Imagery: Courtesy NASA/JPL-Caltech.',font=F(21),fill=(152,171,159))
-  dr.line((0,H-3,int(W*(frame+1)/(fps*duration)),H-3),fill=(177,220,192),width=3)
+   pos,basis=camera(t)
+   surface=Image.fromarray(raster((v-pos)@basis.T,faces,uv,tex,1792,920,1680.))
+   im.paste(surface,(64,32))
+   dr.text((64,978),'Spirit, sol 767.  Textured mesh; gaps indicate missing geometry.',font=F(30),fill='black')
+   dr.text((64,1024),f'Camera translation: {pos[2]:.2f} m forward.',font=F(25),fill='black')
+   dr.text((1480,1024),'NASA/JPL-Caltech',font=F(25),fill='black')
   proc.stdin.write(im.tobytes())
-  if frame%300==0:print('frame',frame,flush=True)
- proc.stdin.close();assert proc.wait()==0
-if __name__=='__main__':main()
+  if frame%300==0: print('frame',frame,flush=True)
+ proc.stdin.close()
+ if proc.wait()!=0: raise RuntimeError('FFmpeg encoding failed')
+ Image.open(ROOT/'demo/poster.png').resize((960,540),Image.Resampling.LANCZOS).save(ROOT/'demo/preview.png')
+if __name__=='__main__': main()

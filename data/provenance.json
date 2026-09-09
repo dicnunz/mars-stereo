@@ -1,0 +1,18 @@
+{
+  "mission": "Spirit (MER2)",
+  "dataset": "MER2-M-NAVCAM-2-EDR-OPS-V1.0",
+  "sol": 767,
+  "frame": "ROVER_FRAME, index (125,100,0,5,0)",
+  "files": [
+    {
+      "name": "2n194463440effapa0p0685l0m1.img",
+      "sha256": "acd7b3f28852eecb32c7c27d298a391fbef56df69ef7bada3f6ce05e4d66dc01",
+      "url": "https://planetarydata.jpl.nasa.gov/img/data/mer/mer2no_0xxx/data/sol0767/edr/2n194463440effapa0p0685l0m1.img"
+    },
+    {
+      "name": "2n194463440effapa0p0685r0m1.img",
+      "sha256": "940323d4dc6a3c7fa6c3e29837306af9f90475728e7b0cdd48a31cb98f83a5bd",
+      "url": "https://planetarydata.jpl.nasa.gov/img/data/mer/mer2no_0xxx/data/sol0767/edr/2n194463440effapa0p0685r0m1.img"
+    }
+  ]
+}

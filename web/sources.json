@@ -1,0 +1,33 @@
+{
+  "sources": [
+    {
+      "source": "output/left-raw.png",
+      "asset": "assets/left-raw.png",
+      "sha256": "ba6491070326c6e3fa4133b8efcd81d679c4fddc254a6795ac3aab530dabc07d"
+    },
+    {
+      "source": "output/right-raw.png",
+      "asset": "assets/right-raw.png",
+      "sha256": "89a5542c443a61e3f2f6e95eb787105bfdf82d0fe4eb7b888c258508c0154464"
+    },
+    {
+      "source": "output/left.png",
+      "asset": "assets/left.png",
+      "sha256": "60ebf5f1fd78895f8e09a874b6dbf10dff9cc66e71bb580535e707d0626e4af9"
+    },
+    {
+      "source": "output/disparity.png",
+      "asset": "assets/disparity.png",
+      "sha256": "bec4e7d08c219b21bfebd0fa4223d9edc586dd6ad48b0198557b26080eb1fffc"
+    },
+    {
+      "source": "demo/preview.png",
+      "asset": "assets/preview.png",
+      "sha256": "9e917d6678bcb0cddd95b757d652a0986fdeef141aa29e5c5f86444bb7e94577"
+    },
+    {
+      "source": "output/metrics.json",
+      "sha256": "270d40f1bc2b9e40067544f1d8f894e06ccf19798b7802b1aac0e24731f0ee54"
+    }
+  ]
+}

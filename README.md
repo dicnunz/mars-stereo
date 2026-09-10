@@ -1,13 +1,21 @@
 # Mars Stereo
 
-[Explore recorded results](https://dicnunz.github.io/demos/mars-stereo/).
-[Browser inspection source](web/index.html). Open `web/index.html` locally to explore the recorded results; no server or install is needed. Validate the bundle with `python3 scripts/verify_web.py` and `node tests/web_controls.cjs`.
-
 Spirit Navcam stereo reconstruction. Sol 767, 1 March 2006.
+
+[Explore recorded results](https://dicnunz.github.io/demos/mars-stereo/)
 
 [Video](demo/wheatstone.mp4) · [Mesh](output/terrain.obj) · [Measurements](output/metrics.json)
 
 ![Spirit Navcam observation and reconstructed surface](demo/poster.png)
+
+## Inspect locally
+
+Open [web/index.html](web/index.html) in a browser; no installation is needed. To check the saved assets and controls:
+
+```sh
+python3 scripts/verify_web.py
+node tests/web_controls.cjs
+```
 
 ## Run
 
